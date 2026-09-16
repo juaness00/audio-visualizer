@@ -2,6 +2,6 @@
 #
 # Why this change is needed:
 #
-# Linear: closes AUD-000
+# Linear: closes LOS-000
 # Magic words Linear accepts: close/closes/closed, fix/fixes/fixed,
-# resolve/resolves/resolved  +  <TEAM-KEY>-<number>
+# resolve/resolves/resolved  +  LOS-<number>
