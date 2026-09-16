@@ -1,0 +1,7 @@
+# <type>(<scope>): <subject>          # <=50 chars
+#
+# Why this change is needed:
+#
+# Linear: closes AUD-000
+# Magic words Linear accepts: close/closes/closed, fix/fixes/fixed,
+# resolve/resolves/resolved  +  <TEAM-KEY>-<number>
