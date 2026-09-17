@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Microphone access · Audio Visualizer</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0e0f12;
+        color: #e8e8ea;
+        font:
+          15px/1.5 system-ui,
+          -apple-system,
+          sans-serif;
+        text-align: center;
+      }
+      p {
+        max-width: 36ch;
+        margin: 0;
+        padding: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="message">Allow microphone access in the prompt. This tab closes itself afterwards.</p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

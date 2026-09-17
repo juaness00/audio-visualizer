@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Visualizer</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <canvas id="stage" aria-label="Audio visualization"></canvas>
+
+      <section id="empty" class="state">
+        <p>Pick an audio source</p>
+        <div class="sources">
+          <button id="src-tab" type="button">This tab</button>
+          <button id="src-mic" type="button">Microphone</button>
+          <label class="button" for="src-file">Audio file</label>
+          <input id="src-file" type="file" accept="audio/*" hidden />
+        </div>
+        <p id="status" class="status" role="status"></p>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
