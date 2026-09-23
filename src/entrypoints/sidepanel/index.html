@@ -19,6 +19,58 @@
           <input id="src-file" type="file" accept="audio/*" hidden />
         </div>
         <p id="status" class="status" role="status"></p>
+        <a id="mic-settings" href="chrome://settings/content/microphone" hidden
+          >Open microphone settings, then retry Microphone</a
+        >
+        <button id="stop" type="button" hidden>Stop</button>
+        <details class="settings">
+          <summary>Settings &amp; presets</summary>
+          <fieldset id="settings-fields" disabled>
+            <legend>Visualization</legend>
+            <label for="gain">Sensitivity <output id="gain-value" for="gain">1.0</output></label>
+            <input id="gain" type="range" min="0.1" max="4" step="0.1" />
+            <label for="smoothing"
+              >Smoothing <output id="smoothing-value" for="smoothing">0.80</output></label
+            >
+            <input id="smoothing" type="range" min="0" max="0.95" step="0.01" />
+            <label for="low">Low frequency (Hz)</label>
+            <input id="low" type="number" min="0" max="23999" />
+            <label for="high">High frequency (Hz)</label>
+            <input id="high" type="number" min="1" max="24000" />
+            <label for="fft-size">Frequency resolution</label>
+            <select id="fft-size">
+              <option>32</option>
+              <option>64</option>
+              <option>128</option>
+              <option>256</option>
+              <option>512</option>
+              <option>1024</option>
+              <option>2048</option>
+              <option>4096</option>
+              <option>8192</option>
+              <option>16384</option>
+              <option>32768</option>
+            </select>
+            <label for="palette">Colors (comma-separated hex values)</label>
+            <input id="palette" type="text" maxlength="80" />
+            <label for="hue-mode">Color by</label>
+            <select id="hue-mode">
+              <option value="frequency">Frequency</option>
+              <option value="amplitude">Amplitude</option>
+            </select>
+            <label for="preset">Load preset</label>
+            <select id="preset"></select>
+            <label for="preset-name">Preset name</label>
+            <input id="preset-name" type="text" maxlength="40" placeholder="My preset" />
+            <small>Saving the same name replaces that preset. Up to 12 custom presets.</small>
+            <div class="sources">
+              <button id="preset-save" type="button">Save preset</button>
+              <button id="preset-delete" type="button" disabled>Delete preset</button>
+            </div>
+          </fieldset>
+          <p id="settings-status" class="status" role="status">Loading settings…</p>
+          <button id="settings-retry" type="button" hidden>Retry</button>
+        </details>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>

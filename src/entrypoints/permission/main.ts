@@ -1,22 +1,34 @@
-// Chrome won't show a permission prompt from a side panel or popup. This page
-// runs in a real tab, so the prompt appears here. The grant is scoped to the
-// extension origin, so the side panel can call getUserMedia afterwards without
-// ever prompting again.
-//
-// Opened by the side panel (LOS-11): chrome.tabs.create({ url: chrome.runtime.getURL('permission.html') })
+﻿import { MIC_CONSTRAINTS, microphoneError } from '@/audio/sources/mic';
 
 const message = document.querySelector<HTMLElement>('#message');
+const settings = document.querySelector<HTMLAnchorElement>('#mic-settings');
+const requestId = new URLSearchParams(location.search).get('requestId');
+settings?.addEventListener('click', (event) => {
+  event.preventDefault();
+  void chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
+});
+
+async function notify(error?: unknown) {
+  await chrome.runtime
+    .sendMessage({
+      type: 'microphone-permission',
+      requestId,
+      error: error ? microphoneError(error) : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    })
+    .catch(() => {});
+}
 
 try {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  // We only wanted the grant. Release the device immediately.
+  const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
   for (const track of stream.getTracks()) track.stop();
-  window.close();
-} catch (err) {
-  if (message) {
+  await notify();
+  if (message)
     message.textContent =
-      err instanceof DOMException && err.name === 'NotAllowedError'
-        ? 'Microphone access was denied. You can change this at chrome://settings/content/microphone, then close this tab.'
-        : `Could not access the microphone: ${err instanceof Error ? err.message : String(err)}`;
-  }
+      'Microphone allowed. You can close this tab and return to the visualizer.';
+  window.close();
+} catch (error) {
+  if (message) message.textContent = microphoneError(error);
+  if (settings) settings.hidden = false;
+  await notify(error);
 }
