@@ -4,6 +4,7 @@ import { createTabSource } from '@/audio/sources/tab';
 import type { AudioSource } from '@/audio/sources/types';
 import { resizeToDisplaySize } from '@/utils/canvas';
 
+
 const canvas = document.querySelector<HTMLCanvasElement>('#stage');
 const status = document.querySelector<HTMLElement>('#status');
 if (!canvas || !status) throw new Error('sidepanel: missing #stage or #status');
