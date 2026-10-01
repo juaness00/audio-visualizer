@@ -2,18 +2,14 @@ import { createFileSource } from '@/audio/sources/file';
 import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
 import type { AudioSource } from '@/audio/sources/types';
-import { resizeToDisplaySize } from '@/utils/canvas';
+import { observeCanvasSize } from '@/utils/canvas';
 
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage');
 const status = document.querySelector<HTMLElement>('#status');
 if (!canvas || !status) throw new Error('sidepanel: missing #stage or #status');
 
-// Keep the canvas backing store matched to its CSS size × devicePixelRatio,
-// otherwise everything renders blurry on retina panels.
-const observer = new ResizeObserver(() => resizeToDisplaySize(canvas));
-observer.observe(canvas);
-resizeToDisplaySize(canvas);
+observeCanvasSize(canvas);
 
 function report(message: string) {
   status!.textContent = message;
