@@ -10,6 +10,7 @@
     <main class="panel">
       <canvas id="stage" aria-label="Audio visualization"></canvas>
 
+      <!-- One .state per PanelState view (state.ts); views.ts shows at most one. -->
       <section id="empty" class="state">
         <p>Pick an audio source</p>
         <div class="sources">
@@ -21,7 +22,24 @@
         <p id="status" class="status" role="status"></p>
       </section>
 
-      <!-- Controls rail. Filled by LOS-14/25/26/27; shown once a source is live (LOS-8+). -->
+      <section id="loading" class="state" aria-busy="true" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <p id="loading-text" role="status"></p>
+      </section>
+
+      <section id="error" class="state" role="alert" hidden>
+        <p id="error-title" class="title"></p>
+        <p id="error-body" class="status"></p>
+        <div class="sources">
+          <button id="error-action" type="button"></button>
+          <button id="error-back" type="button">Back to sources</button>
+        </div>
+      </section>
+
+      <!-- Non-blocking: the source keeps running and the banner clears on sound. -->
+      <p id="silent" class="banner" role="status" hidden>This tab isn't playing anything.</p>
+
+      <!-- Controls rail. Filled by LOS-14/25/26/27; shown while a source is live. -->
       <footer id="controls" class="rail" aria-label="Controls" hidden></footer>
     </main>
     <script type="module" src="./main.ts"></script>
