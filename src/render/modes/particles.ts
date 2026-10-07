@@ -1,3 +1,5 @@
+import type { VisualizerSettings } from '@/settings/schema';
+import { hzToBin } from '../renderer';
 import type { Renderer } from '../renderer';
 
 const MAX_PARTICLES = 240;
@@ -15,6 +17,39 @@ const pool = Array.from({ length: MAX_PARTICLES }, () => ({
   life: 0,
   band: 0,
 }));
+
+
+const energies = new Float32Array(BANDS);
+
+
+export function bandEnergies(
+  bins: Uint8Array,
+  sampleRate: number,
+  fftSize: number,
+  range: VisualizerSettings['range'],
+  gain: number,
+  out: Float32Array,
+): void {
+  out.fill(0);
+  const count = out.length;
+  const binCount = bins.length;
+  if (count === 0 || binCount < 2) return;
+
+  
+  const low = Math.min(Math.max(hzToBin(range.low, sampleRate, fftSize), 1), binCount - 1);
+  const high = Math.min(Math.max(hzToBin(range.high, sampleRate, fftSize), low + count), binCount);
+  const ratio = high / low;
+
+  for (let band = 0; band < count; band++) {
+    const start = Math.floor(low * Math.pow(ratio, band / count));
+    const end = Math.floor(low * Math.pow(ratio, (band + 1) / count));
+    const last = Math.max(start + 1, Math.min(end, binCount));
+
+    let total = 0;
+    for (let i = start; i < last; i++) total += bins[i] ?? 0;
+    out[band] = Math.min((total / (last - start) / 255) * gain, 1);
+  }
+}
 
 function spawn(band: number, energy: number, width: number, height: number): void {
   for (let i = 0; i < MAX_PARTICLES; i++) {
@@ -42,15 +77,17 @@ export const particles: Renderer = {
     ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(12,12,16,0.22)';
     ctx.fillRect(0, 0, width, height);
-    const size = Math.floor(frame.bins.length / BANDS);
+    bandEnergies(
+      frame.bins,
+      frame.sampleRate,
+      frame.fftSize,
+      settings.range,
+      settings.gain,
+      energies,
+    );
 
     for (let band = 0; band < BANDS; band++) {
-      let total = 0;
-      for (let i = band * size; i < (band + 1) * size; i++) {
-        total += frame.bins[i] ?? 0;
-      }
-      const energy = Math.min((total / size / 255) * settings.gain, 1);
-
+      const energy = energies[band] ?? 0;
       if (energy < THRESHOLD) continue;
       for (let n = 0; n < Math.round(energy * MAX_SPAWN); n++) {
         spawn(band, energy, width, height);
