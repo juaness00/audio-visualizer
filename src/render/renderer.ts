@@ -13,6 +13,11 @@ export interface RenderFrame {
 export interface Renderer {
   readonly id: ShapeMode;
   draw(ctx: CanvasRenderingContext2D, frame: RenderFrame, settings: VisualizerSettings): void;
+  /**
+   * Optional. Drop any state kept between frames, so switching back to this
+   * mode starts clean. The render loop should call it on a mode change (LOS-12).
+   */
+  reset?(): void;
 }
 
 /** Hz → bin index for a given engine. */

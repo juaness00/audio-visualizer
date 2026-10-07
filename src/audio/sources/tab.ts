@@ -9,10 +9,14 @@ import type { AudioSource } from './types';
  *  - Capturing mutes the tab. Also connect the stream to context.destination
  *    or the user's music goes silent.
  *
- * Whether this page can redeem the id itself is what LOS-17 (spike) decides.
- * If it can't, the graph moves to an offscreen document and this file becomes
- * a message-passing client.
+ * LOS-17 spike result (Chrome 154): this page CAN redeem the id, but only one
+ * the service worker requests inside chrome.action.onClicked. Requesting it
+ * from the panel fails with "Extension has not been invoked", and
+ * openPanelOnActionClick never grants capture. So: replace
+ * openPanelOnActionClick with action.onClicked + sidePanel.open, request the
+ * id there, and hand it to this page. No offscreen document needed. Full
+ * write-up on LOS-17.
  */
 export function createTabSource(): AudioSource {
-  throw new Error('TODO LOS-10: createTabSource (blocked by spike LOS-17)');
+  throw new Error('TODO LOS-10: createTabSource');
 }
