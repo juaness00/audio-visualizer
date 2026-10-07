@@ -1,12 +1,16 @@
 import type { VisualizerSettings } from '@/settings/schema';
 import { hzToBin } from '../renderer';
 import type { Renderer } from '../renderer';
+import { PANEL_BG_RGB } from '../theme';
 
 const MAX_PARTICLES = 240;
 const BANDS = 4;
 const THRESHOLD = 0.18;
 const MAX_SPAWN = 3;
 const TAU = Math.PI * 2;
+
+
+const TRAIL_FILL = `rgba(${PANEL_BG_RGB}, 0.22)`;
 
 const pool = Array.from({ length: MAX_PARTICLES }, () => ({
   x: 0,
@@ -22,27 +26,44 @@ const pool = Array.from({ length: MAX_PARTICLES }, () => ({
 const energies = new Float32Array(BANDS);
 
 
-export function bandEnergies(
-  bins: Uint8Array,
+const edges = new Int32Array(BANDS + 1);
+
+
+const edgesFor = { binCount: -1, sampleRate: -1, fftSize: -1, low: -1, high: -1 };
+
+
+export function bandEdges(
+  binCount: number,
   sampleRate: number,
   fftSize: number,
   range: VisualizerSettings['range'],
-  gain: number,
-  out: Float32Array,
+  out: Int32Array,
 ): void {
   out.fill(0);
-  const count = out.length;
-  const binCount = bins.length;
-  if (count === 0 || binCount < 2) return;
+  const count = out.length - 1;
+  if (count < 1 || binCount < 2) return;
 
-  
+  // A log split needs a non-zero lower edge.
   const low = Math.min(Math.max(hzToBin(range.low, sampleRate, fftSize), 1), binCount - 1);
   const high = Math.min(Math.max(hzToBin(range.high, sampleRate, fftSize), low + count), binCount);
   const ratio = high / low;
 
-  for (let band = 0; band < count; band++) {
-    const start = Math.floor(low * Math.pow(ratio, band / count));
-    const end = Math.floor(low * Math.pow(ratio, (band + 1) / count));
+  for (let edge = 0; edge <= count; edge++) {
+    out[edge] = Math.floor(low * Math.pow(ratio, edge / count));
+  }
+}
+
+
+export function bandEnergies(
+  bins: Uint8Array,
+  boundaries: Int32Array,
+  gain: number,
+  out: Float32Array,
+): void {
+  const binCount = bins.length;
+  for (let band = 0; band < out.length; band++) {
+    const start = boundaries[band] ?? 0;
+    const end = boundaries[band + 1] ?? start;
     const last = Math.max(start + 1, Math.min(end, binCount));
 
     let total = 0;
@@ -70,21 +91,40 @@ function spawn(band: number, energy: number, width: number, height: number): voi
 
 export const particles: Renderer = {
   id: 'particles',
+
+
+  reset() {
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const p = pool[i];
+      if (p) p.age = p.life;
+    }
+  },
+
   draw(ctx, frame, settings) {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     if (width === 0 || height === 0) return;
     ctx.globalAlpha = 1;
-    ctx.fillStyle = 'rgba(12,12,16,0.22)';
+    ctx.fillStyle = TRAIL_FILL;
     ctx.fillRect(0, 0, width, height);
-    bandEnergies(
-      frame.bins,
-      frame.sampleRate,
-      frame.fftSize,
-      settings.range,
-      settings.gain,
-      energies,
-    );
+
+    
+    const binCount = frame.bins.length;
+    if (
+      binCount !== edgesFor.binCount ||
+      frame.sampleRate !== edgesFor.sampleRate ||
+      frame.fftSize !== edgesFor.fftSize ||
+      settings.range.low !== edgesFor.low ||
+      settings.range.high !== edgesFor.high
+    ) {
+      bandEdges(binCount, frame.sampleRate, frame.fftSize, settings.range, edges);
+      edgesFor.binCount = binCount;
+      edgesFor.sampleRate = frame.sampleRate;
+      edgesFor.fftSize = frame.fftSize;
+      edgesFor.low = settings.range.low;
+      edgesFor.high = settings.range.high;
+    }
+    bandEnergies(frame.bins, edges, settings.gain, energies);
 
     for (let band = 0; band < BANDS; band++) {
       const energy = energies[band] ?? 0;
