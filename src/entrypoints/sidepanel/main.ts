@@ -1,29 +1,31 @@
 ﻿import { createAudioEngine, type AudioEngine } from '@/audio/engine';
-import { createAudioEngine, type AudioEngine } from '@/audio/engine';
 import { toSourceError } from '@/audio/sources/errors';
 import { createFileSource } from '@/audio/sources/file';
-import { createMicSource, microphoneError } from '@/audio/sources/mic';
+import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
-import type { AudioSource } from '@/audio/sources/types';
+import type { AudioSource, SourceKind } from '@/audio/sources/types';
 import { normalizeSettings } from '@/settings/schema';
 import { setupSettings } from './settings';
 import { bars } from '@/render/modes/bars';
 import { createRenderLoop } from '@/render/loop';
-import { resizeToDisplaySize } from '@/utils/canvas';
+import { observeCanvasSize } from '@/utils/canvas';
+import { INITIAL_STATE, nextState, type PanelEvent, type PanelState } from './state';
+import { createViews } from './views';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
-const status = document.querySelector<HTMLElement>('#status')!;
-const settingsLink = document.querySelector<HTMLAnchorElement>('#mic-settings')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
-const micButton = document.querySelector<HTMLButtonElement>('#src-mic')!;
-const observer = new ResizeObserver(() => resizeToDisplaySize(canvas));
-observer.observe(canvas);
-resizeToDisplaySize(canvas);
+const stopObserving = observeCanvasSize(canvas);
 
+let state: PanelState = INITIAL_STATE;
 let engine: AudioEngine | undefined;
 let source: AudioSource | undefined;
+let last: { kind: SourceKind; make: () => AudioSource } | undefined;
 let generation = 0;
 let settings = normalizeSettings(undefined);
+const render = createViews({
+  onRetry: () => last && void select(last.kind, last.make),
+  onDismiss: () => dispatch({ type: 'dismiss' }),
+});
 void setupSettings((value) => {
   settings = value;
   engine?.setSmoothing(value.smoothing);
@@ -47,64 +49,69 @@ const loop = createRenderLoop({
   settings: () => settings,
 });
 
+function dispatch(event: PanelEvent) {
+  state = nextState(state, event);
+  render(state);
+  if (state.view === 'playing') loop.start();
+  else loop.stop();
+}
+
 function stop() {
   generation++;
   source?.stop();
   source = undefined;
   engine?.disconnect();
   loop.stop();
-  micButton.disabled = false;
-  stopButton.hidden = true;
-  document.querySelector('#empty')?.classList.remove('playing');
 }
 
-async function select(make: () => AudioSource) {
+async function select(kind: SourceKind, make: () => AudioSource) {
   stop();
   const current = generation;
-  settingsLink.hidden = true;
+  last = { kind, make };
+  dispatch({ type: 'select', kind });
   try {
     source = make();
     engine ??= createAudioEngine(settings);
     // Resume synchronously from the click, before waiting for permission.
-    const resumed = engine.resume();
-    micButton.disabled = source.kind === 'mic';
-    stopButton.hidden = false;
-    status.textContent =
-      source.kind === 'mic'
-        ? 'Setting up microphone. If a permission tab opens, allow access there.'
-        : 'Starting audio…';
-    await resumed;
+    await engine.resume();
     if (current !== generation) return;
-    await source.start(engine);
+    await source.start(engine, {
+      onEnded(reason) {
+        if (current !== generation) return;
+        stop();
+        dispatch({ type: 'ended', error: reason });
+      },
+    });
     if (current !== generation) return;
-    status.textContent = 'Visualizing microphone';
-    document.querySelector('#empty')?.classList.add('playing');
-    loop.start();
+    dispatch({ type: 'started' });
   } catch (error) {
     if (current !== generation) return;
     stop();
-    status.textContent = microphoneError(error);
-    settingsLink.hidden = !(error instanceof Error && error.name === 'NotAllowedError');
+    console.error(`sidepanel: ${kind} source failed`, error);
+    dispatch({ type: 'failed', error: toSourceError(error, kind) });
   }
 }
 
-document.querySelector('#src-tab')?.addEventListener('click', () => void select(createTabSource));
-micButton.addEventListener('click', () => void select(createMicSource));
+document
+  .querySelector('#src-tab')
+  ?.addEventListener('click', () => void select('tab', createTabSource));
+document
+  .querySelector('#src-mic')
+  ?.addEventListener('click', () => void select('mic', createMicSource));
 document.querySelector<HTMLInputElement>('#src-file')?.addEventListener('change', (event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) void select(() => createFileSource(file));
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file) void select('file', () => createFileSource(file));
 });
 stopButton.addEventListener('click', () => {
   stop();
-  status.textContent = 'Stopped. Choose a source to start again.';
-});
-settingsLink.addEventListener('click', (event) => {
-  event.preventDefault();
-  void chrome.tabs.create({ url: 'chrome://settings/content/microphone' });
+  state = { view: 'picker', notice: 'Stopped. Choose a source to start again.' };
+  render(state);
 });
 window.addEventListener('pagehide', () => {
   stop();
-  observer.disconnect();
+  stopObserving();
   void engine?.context.close();
 });
 

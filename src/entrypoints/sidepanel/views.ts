@@ -38,6 +38,7 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
   const errorAction = el<HTMLButtonElement>('#error-action');
   const silent = el('#silent');
   const rail = el('#controls');
+  const stop = el<HTMLButtonElement>('#stop');
 
   let action: ErrorAction | undefined;
   errorAction.addEventListener('click', () => {
@@ -55,7 +56,8 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
     loading.hidden = state.view !== 'loading';
     error.hidden = state.view !== 'error';
     silent.hidden = !(state.view === 'playing' && state.silent);
-    rail.hidden = state.view !== 'playing';
+    rail.hidden = state.view === 'error';
+    stop.hidden = state.view !== 'loading' && state.view !== 'playing';
 
     if (state.view === 'picker') notice.textContent = state.notice ?? '';
     if (state.view === 'loading') loadingText.textContent = LOADING_TEXT[state.kind];
