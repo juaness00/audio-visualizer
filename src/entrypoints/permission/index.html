@@ -26,7 +26,14 @@
     </style>
   </head>
   <body>
-    <p id="message">Allow microphone access in the prompt. This tab closes itself afterwards.</p>
+    <div>
+      <p id="message" role="status">
+        Allow microphone access in the prompt. This tab closes itself afterwards.
+      </p>
+      <a id="mic-settings" href="chrome://settings/content/microphone" hidden
+        >Open microphone settings</a
+      >
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
