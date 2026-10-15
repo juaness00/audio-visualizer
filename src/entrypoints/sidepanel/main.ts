@@ -1,4 +1,6 @@
 ﻿import { createAudioEngine, type AudioEngine } from '@/audio/engine';
+import { createAudioEngine, type AudioEngine } from '@/audio/engine';
+import { toSourceError } from '@/audio/sources/errors';
 import { createFileSource } from '@/audio/sources/file';
 import { createMicSource, microphoneError } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
@@ -105,3 +107,15 @@ window.addEventListener('pagehide', () => {
   observer.disconnect();
   void engine?.context.close();
 });
+
+render(state);
+
+if (import.meta.env.DEV) {
+  const name = new URLSearchParams(location.search).get('state');
+  if (name) {
+    const { PREVIEWS } = await import('./previews');
+    const preview = PREVIEWS[name];
+    if (preview) render((state = preview));
+    else console.warn(`sidepanel: no preview "${name}". Try: ${Object.keys(PREVIEWS).join(', ')}`);
+  }
+}
