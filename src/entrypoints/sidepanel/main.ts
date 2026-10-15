@@ -3,10 +3,12 @@ import { toSourceError } from '@/audio/sources/errors';
 import { createFileSource } from '@/audio/sources/file';
 import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
+import { TAB_CAPTURE_PORT } from '@/audio/tab-capture';
 import type { AudioSource, SourceKind } from '@/audio/sources/types';
 import { normalizeSettings } from '@/settings/schema';
 import { setupSettings } from './settings';
 import { bars } from '@/render/modes/bars';
+import { particles } from '@/render/modes/particles';
 import { createRenderLoop } from '@/render/loop';
 import { observeCanvasSize } from '@/utils/canvas';
 import { INITIAL_STATE, nextState, type PanelEvent, type PanelState } from './state';
@@ -21,12 +23,21 @@ let engine: AudioEngine | undefined;
 let source: AudioSource | undefined;
 let last: { kind: SourceKind; make: () => AudioSource } | undefined;
 let generation = 0;
+let captureRequest: string | undefined;
 let settings = normalizeSettings(undefined);
+let renderer = bars;
 const render = createViews({
   onRetry: () => last && void select(last.kind, last.make),
   onDismiss: () => dispatch({ type: 'dismiss' }),
 });
 void setupSettings((value) => {
+  const nextRenderer = value.mode === 'particles' ? particles : bars;
+  if (renderer !== nextRenderer) {
+    renderer.reset?.();
+    nextRenderer.reset?.();
+    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    renderer = nextRenderer;
+  }
   settings = value;
   engine?.setSmoothing(value.smoothing);
   engine?.setFftSize(value.fftSize);
@@ -45,7 +56,7 @@ const loop = createRenderLoop({
     frame.fftSize = engine!.fftSize;
     return frame;
   },
-  renderer: () => bars,
+  renderer: () => renderer,
   settings: () => settings,
 });
 
@@ -57,11 +68,13 @@ function dispatch(event: PanelEvent) {
 }
 
 function stop() {
+  captureRequest = undefined;
   generation++;
   source?.stop();
   source = undefined;
   engine?.disconnect();
   loop.stop();
+  renderer.reset?.();
 }
 
 async function select(kind: SourceKind, make: () => AudioSource) {
@@ -72,8 +85,9 @@ async function select(kind: SourceKind, make: () => AudioSource) {
   try {
     source = make();
     engine ??= createAudioEngine(settings);
-    // Resume synchronously from the click, before waiting for permission.
-    await engine.resume();
+    // Mic/file selection comes from a panel click. Tab capture arrives from
+    // the toolbar, so acquire its stream before resuming the audio context.
+    if (kind !== 'tab') await engine.resume();
     if (current !== generation) return;
     await source.start(engine, {
       onEnded(reason) {
@@ -82,6 +96,8 @@ async function select(kind: SourceKind, make: () => AudioSource) {
         dispatch({ type: 'ended', error: reason });
       },
     });
+    if (current !== generation) return;
+    if (kind === 'tab') await engine.resume();
     if (current !== generation) return;
     dispatch({ type: 'started' });
   } catch (error) {
@@ -92,9 +108,15 @@ async function select(kind: SourceKind, make: () => AudioSource) {
   }
 }
 
-document
-  .querySelector('#src-tab')
-  ?.addEventListener('click', () => void select('tab', createTabSource));
+document.querySelector('#src-tab')?.addEventListener('click', () => {
+  stop();
+  state = {
+    view: 'picker',
+    notice:
+      'Open the tab you want to hear, then click the Audio Visualizer icon in the toolbar to capture it.',
+  };
+  render(state);
+});
 document
   .querySelector('#src-mic')
   ?.addEventListener('click', () => void select('mic', createMicSource));
@@ -116,6 +138,53 @@ window.addEventListener('pagehide', () => {
 });
 
 render(state);
+
+// A port handshake prevents losing the stream ID while a newly opened panel loads.
+let capturePort: chrome.runtime.Port | undefined;
+let reconnect: ReturnType<typeof setTimeout> | undefined;
+let closed = false;
+function connectCapture() {
+  if (closed) return;
+  const port = chrome.runtime.connect({ name: TAB_CAPTURE_PORT });
+  capturePort = port;
+  port.onMessage.addListener((message) => {
+    if (typeof message?.requestId !== 'string') return;
+    if (message.type === 'prepare') {
+      stop();
+      captureRequest = message.requestId;
+      dispatch({ type: 'select', kind: 'tab' });
+      port.postMessage({ type: 'prepared', requestId: message.requestId });
+    } else if (message.requestId === captureRequest) {
+      if (message.type === 'start' && typeof message.streamId === 'string') {
+        void select('tab', () => createTabSource(message.streamId));
+      } else if (message.type === 'failed') {
+        stop();
+        dispatch({ type: 'failed', error: toSourceError(new Error('Tab capture failed'), 'tab') });
+      }
+    }
+  });
+  port.onDisconnect.addListener(() => {
+    // Reading lastError also handles the worker being restarted during development.
+    void chrome.runtime.lastError;
+    if (captureRequest) {
+      stop();
+      dispatch({ type: 'failed', error: toSourceError(new Error('Capture interrupted'), 'tab') });
+    }
+    if (!closed) reconnect = setTimeout(connectCapture, 500);
+  });
+  void chrome.windows
+    .getCurrent()
+    .then((window) => {
+      if (!closed && capturePort === port) port.postMessage({ type: 'ready', windowId: window.id });
+    })
+    .catch((error: unknown) => console.error('Could not connect tab capture', error));
+}
+connectCapture();
+window.addEventListener('pagehide', () => {
+  closed = true;
+  clearTimeout(reconnect);
+  capturePort?.disconnect();
+});
 
 if (import.meta.env.DEV) {
   const name = new URLSearchParams(location.search).get('state');

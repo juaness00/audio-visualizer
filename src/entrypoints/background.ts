@@ -1,6 +1,7 @@
 import { defineBackground } from '#imports';
 import { createSettingsPersistence } from '@/settings/persistence';
 import type { SettingsCommand } from '@/settings/store';
+import { setupTabCapture } from '@/audio/tab-capture';
 
 export default defineBackground(() => {
   const settings = createSettingsPersistence();
@@ -22,9 +23,5 @@ export default defineBackground(() => {
       .restore()
       .catch((error: unknown) => console.error('Settings recovery failed', error));
   });
-  // Clicking the toolbar icon opens the side panel instead of a popup.
-  // A popup would die the moment the user clicks away; the panel survives.
-  chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((err: unknown) => console.error('sidePanel.setPanelBehavior failed', err));
+  setupTabCapture();
 });

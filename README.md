@@ -7,8 +7,8 @@ Senior project, CIS4914, University of Florida. Team Los Tigres Dorados.
 
 ## Status
 
-Microphone capture and basic spectrum visualization are implemented. Other sources
-and advanced controls are still in progress. Backlog is in Linear (team `LOS`), grouped into
+Tab and microphone capture, bars and particles, and persistent settings/presets are
+implemented. Local file playback is still in progress. Backlog is in Linear (team `LOS`), grouped into
 four milestones: walking skeleton → tab & mic audio → controls & presets → ship.
 
 ## Audio sources
@@ -39,9 +39,11 @@ Two Chrome behaviors shape everything:
   `permission.html` in a real tab once; the permission is scoped to the extension origin,
   so the panel inherits it.
 
-Whether the side panel can consume a tabCapture stream id directly is unverified;
-LOS-17 is a timeboxed spike. The fallback is an offscreen document that owns the audio
-graph and posts frames to the panel.
+The LOS-17 spike confirmed the side panel can consume a stream ID requested by
+the toolbar action's service-worker handler. A per-window port handshake waits for
+the panel to load and release any previous capture before minting the single-use
+ID. The panel redeems it immediately and owns the audio graph; no offscreen
+document is needed.
 
 ## Stack
 
@@ -85,13 +87,37 @@ To verify in Chrome after `npm run build` and loading `.output/chrome-mv3`:
 6. Try with no microphone or with access blocked in Windows privacy settings; the
    panel should explain the failure.
 
-Tab and file sources remain separate unfinished issues. The basic audio engine and
-bar renderer are included so the microphone flow can be exercised end to end.
+Local file playback remains unfinished.
+
+## Tab audio setup and testing
+
+After building and reloading the extension at `chrome://extensions`:
+
+1. Pin Audio Visualizer in Chrome's extensions menu. Open a normal web tab and
+   start audio, such as a YouTube video.
+2. Click the Audio Visualizer toolbar icon. The panel opens and captures that tab
+   automatically. Audio should stay audible while the visualization responds.
+3. Switch between Bars and Particles under Settings & presets.
+4. Click Stop. Capture should end and the original tab audio should continue.
+5. Start again with the toolbar icon. Switch to a different playing tab and click
+   the icon there to replace the captured source. Simply changing tabs keeps the
+   original capture running.
+6. Close the captured tab or use Chrome's stop-sharing control. The panel should
+   return to its source picker and release capture.
+7. Try the toolbar icon on a restricted page such as `chrome://extensions`.
+   The panel should show capture recovery instructions.
+8. Repeat in two Chrome windows; each toolbar click should target that window's panel.
+
+The panel's This tab button explains how to start capture from the toolbar, which
+grants access to the selected tab. Closing the panel also releases its stream.
+Automated tests cover playback routing, cleanup, cancellation, capture failures,
+panel startup, per-window routing, and superseded toolbar requests.
 
 ## Settings and presets
 
 Open **Settings & presets** in the panel to adjust sensitivity, smoothing,
 frequency range, resolution, colors, and coloring by frequency or amplitude.
+Render mode selects Bars or Particles and is saved with settings and presets.
 Changes apply live. Spectrum, Bass glow, Voice, and Electric are built in.
 Save up to 12 named custom presets; saving the same name (case-insensitive)
 replaces that custom preset. Selecting a preset loads it. Built-ins cannot be

@@ -54,6 +54,7 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
       input(id).value = String(value);
     input('palette').value = active.palette.join(', ');
     input('hue-mode').value = active.hueMode;
+    input('render-mode').value = active.mode;
     document.querySelector('#gain-value')!.textContent = active.gain.toFixed(1);
     document.querySelector('#smoothing-value')!.textContent = active.smoothing.toFixed(2);
   }
@@ -74,6 +75,11 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
     onChange(active);
     void persist();
   }
+  input('render-mode').addEventListener('change', () => {
+    picker.value = '';
+    remove.disabled = true;
+    apply({ ...active, mode: input('render-mode').value === 'particles' ? 'particles' : 'bars' });
+  });
   for (const id of ['gain', 'smoothing']) {
     input(id).addEventListener('input', () => {
       picker.value = '';
