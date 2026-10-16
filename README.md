@@ -7,8 +7,8 @@ Senior project, CIS4914, University of Florida. Team Los Tigres Dorados.
 
 ## Status
 
-Tab and microphone capture, bars and particles, and persistent settings/presets are
-implemented. Local file playback is still in progress. Backlog is in Linear (team `LOS`), grouped into
+Tab, microphone, and local file capture, bars and particles, and persistent settings/presets are
+implemented. Backlog is in Linear (team `LOS`), grouped into
 four milestones: walking skeleton → tab & mic audio → controls & presets → ship.
 
 ## Audio sources

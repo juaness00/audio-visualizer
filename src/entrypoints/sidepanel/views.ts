@@ -37,6 +37,7 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
   const errorBody = el('#error-body');
   const errorAction = el<HTMLButtonElement>('#error-action');
   const silent = el('#silent');
+  const nowPlaying = el('#now-playing');
   const rail = el('#controls');
   const stop = el<HTMLButtonElement>('#stop');
 
@@ -56,6 +57,7 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
     loading.hidden = state.view !== 'loading';
     error.hidden = state.view !== 'error';
     silent.hidden = !(state.view === 'playing' && state.silent);
+    nowPlaying.hidden = state.view !== 'playing';
     rail.hidden = state.view === 'error';
     stop.hidden = state.view !== 'loading' && state.view !== 'playing';
 
