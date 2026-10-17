@@ -161,6 +161,61 @@ body {
   display: none;
 }
 
+/* LOS-28: file transport, a full-width row at the top of the rail. */
+.transport {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 10px;
+}
+
+.transport[hidden] {
+  display: none;
+}
+
+.transport input[type='range'] {
+  flex: 1;
+  min-width: 60px;
+  accent-color: var(--accent);
+}
+
+.transport .time {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.loop-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* LOS-28: shown while a file is dragged over the panel. */
+.panel.dropping {
+  position: relative;
+}
+
+.panel.dropping::after {
+  content: 'Drop an audio file to play it';
+  position: absolute;
+  inset: 10px;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 14px;
+  background: rgb(12 13 18 / 78%);
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 650;
+  pointer-events: none;
+}
+
 .state {
   grid-row: 2;
   grid-column: 1;

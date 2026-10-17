@@ -63,6 +63,20 @@
       </section>
 
       <footer id="controls" class="rail" aria-label="Controls" hidden>
+        <div id="transport" class="transport" role="group" aria-label="Playback" hidden>
+          <button id="play-pause" type="button" aria-pressed="false">Pause</button>
+          <input
+            id="seek"
+            type="range"
+            min="0"
+            max="1000"
+            step="1"
+            value="0"
+            aria-label="Playback position"
+          />
+          <span id="time" class="time">0:00 / 0:00</span>
+          <label class="loop-toggle"><input id="loop" type="checkbox" /> Loop</label>
+        </div>
         <button id="stop" type="button" hidden>Stop</button>
         <details class="settings">
           <summary>Settings &amp; presets</summary>

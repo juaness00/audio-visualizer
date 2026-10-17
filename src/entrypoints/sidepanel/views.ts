@@ -40,6 +40,7 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
   const nowPlaying = el('#now-playing');
   const rail = el('#controls');
   const stop = el<HTMLButtonElement>('#stop');
+  const transport = el('#transport');
 
   let action: ErrorAction | undefined;
   errorAction.addEventListener('click', () => {
@@ -60,6 +61,7 @@ export function createViews(handlers: ViewHandlers): (state: PanelState) => void
     nowPlaying.hidden = state.view !== 'playing';
     rail.hidden = state.view === 'error';
     stop.hidden = state.view !== 'loading' && state.view !== 'playing';
+    transport.hidden = !(state.view === 'playing' && state.kind === 'file');
 
     if (state.view === 'picker') notice.textContent = state.notice ?? '';
     if (state.view === 'loading') loadingText.textContent = LOADING_TEXT[state.kind];

@@ -1,6 +1,6 @@
 ﻿import { createAudioEngine, type AudioEngine } from '@/audio/engine';
 import { toSourceError } from '@/audio/sources/errors';
-import { createFileSource } from '@/audio/sources/file';
+import { createFileSource, isFileSource } from '@/audio/sources/file';
 import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
 import { TAB_CAPTURE_PORT } from '@/audio/tab-capture';
@@ -13,6 +13,8 @@ import { createRenderLoop } from '@/render/loop';
 import { observeCanvasSize } from '@/utils/canvas';
 import { INITIAL_STATE, nextState, type PanelEvent, type PanelState } from './state';
 import { createViews } from './views';
+import { setupTransport } from './transport';
+import { setupDropZone } from './drop';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
@@ -28,6 +30,7 @@ let captureRequest: string | undefined;
 let settings = normalizeSettings(undefined);
 let renderer = bars;
 let sourceTitle = '';
+const transport = setupTransport(() => (isFileSource(source) ? source : undefined));
 const render = createViews({
   onRetry: () => last && void select(last.kind, last.make),
   onDismiss: () => dispatch({ type: 'dismiss' }),
@@ -65,6 +68,7 @@ const loop = createRenderLoop({
 function dispatch(event: PanelEvent) {
   state = nextState(state, event);
   render(state);
+  if (state.view === 'playing') transport.refresh();
   if (state.view === 'playing') loop.start();
   else loop.stop();
 }
@@ -128,15 +132,19 @@ document.querySelector('#src-mic')?.addEventListener('click', () => {
   sourceTitle = 'Microphone';
   void select('mic', createMicSource);
 });
+/** The picker and a drop both end up here. */
+function playFile(file: File) {
+  sourceTitle = file.name;
+  transport.reset();
+  void select('file', () => createFileSource(file));
+}
 document.querySelector<HTMLInputElement>('#src-file')?.addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (file) {
-    sourceTitle = file.name;
-    void select('file', () => createFileSource(file));
-  }
+  if (file) playFile(file);
 });
+const stopDropZone = setupDropZone(document.querySelector<HTMLElement>('.panel')!, playFile);
 stopButton.addEventListener('click', () => {
   stop();
   state = { view: 'picker', notice: 'Stopped. Choose a source to start again.' };
@@ -145,6 +153,7 @@ stopButton.addEventListener('click', () => {
 window.addEventListener('pagehide', () => {
   stop();
   stopObserving();
+  stopDropZone();
   void engine?.context.close();
 });
 
