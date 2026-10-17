@@ -16,6 +16,7 @@ import { createViews } from './views';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
+const nowPlaying = document.querySelector<HTMLElement>('#now-playing')!;
 const stopObserving = observeCanvasSize(canvas);
 
 let state: PanelState = INITIAL_STATE;
@@ -26,6 +27,7 @@ let generation = 0;
 let captureRequest: string | undefined;
 let settings = normalizeSettings(undefined);
 let renderer = bars;
+let sourceTitle = '';
 const render = createViews({
   onRetry: () => last && void select(last.kind, last.make),
   onDismiss: () => dispatch({ type: 'dismiss' }),
@@ -81,6 +83,7 @@ async function select(kind: SourceKind, make: () => AudioSource) {
   stop();
   const current = generation;
   last = { kind, make };
+  nowPlaying.textContent = `Playing: ${sourceTitle || sourceName(kind)}`;
   dispatch({ type: 'select', kind });
   try {
     source = make();
@@ -106,6 +109,10 @@ async function select(kind: SourceKind, make: () => AudioSource) {
     console.error(`sidepanel: ${kind} source failed`, error);
     dispatch({ type: 'failed', error: toSourceError(error, kind) });
   }
+
+  function sourceName(kind: SourceKind) {
+    return kind === 'file' ? 'Audio file' : kind === 'mic' ? 'Microphone' : 'This tab';
+  }
 }
 
 document.querySelector('#src-tab')?.addEventListener('click', () => {
@@ -117,14 +124,18 @@ document.querySelector('#src-tab')?.addEventListener('click', () => {
   };
   render(state);
 });
-document
-  .querySelector('#src-mic')
-  ?.addEventListener('click', () => void select('mic', createMicSource));
+document.querySelector('#src-mic')?.addEventListener('click', () => {
+  sourceTitle = 'Microphone';
+  void select('mic', createMicSource);
+});
 document.querySelector<HTMLInputElement>('#src-file')?.addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (file) void select('file', () => createFileSource(file));
+  if (file) {
+    sourceTitle = file.name;
+    void select('file', () => createFileSource(file));
+  }
 });
 stopButton.addEventListener('click', () => {
   stop();
@@ -151,6 +162,7 @@ function connectCapture() {
     if (typeof message?.requestId !== 'string') return;
     if (message.type === 'prepare') {
       stop();
+      sourceTitle = 'This tab';
       captureRequest = message.requestId;
       dispatch({ type: 'select', kind: 'tab' });
       port.postMessage({ type: 'prepared', requestId: message.requestId });
