@@ -7,8 +7,8 @@ Senior project, CIS4914, University of Florida. Team Los Tigres Dorados.
 
 ## Status
 
-Tab, microphone, and local file capture, bars and particles, and persistent settings/presets are
-implemented. Backlog is in Linear (team `LOS`), grouped into
+Tab, microphone, and local file capture, bars, waveform, radial, particle, and sound awareness visualizations,
+and persistent settings/presets are implemented. Backlog is in Linear (team `LOS`), grouped into
 four milestones: walking skeleton → tab & mic audio → controls & presets → ship.
 
 ## Audio sources
@@ -97,7 +97,7 @@ After building and reloading the extension at `chrome://extensions`:
    start audio, such as a YouTube video.
 2. Click the Audio Visualizer toolbar icon. The panel opens and captures that tab
    automatically. Audio should stay audible while the visualization responds.
-3. Switch between Bars and Particles under Settings & presets.
+3. Switch between Bars, Waveform, Radial, and Particles under Settings & presets.
 4. Click Stop. Capture should end and the original tab audio should continue.
 5. Start again with the toolbar icon. Switch to a different playing tab and click
    the icon there to replace the captured source. Simply changing tabs keeps the
@@ -116,8 +116,11 @@ panel startup, per-window routing, and superseded toolbar requests.
 ## Settings and presets
 
 Open **Settings & presets** in the panel to adjust sensitivity, smoothing,
-frequency range, resolution, colors, and coloring by frequency or amplitude.
-Render mode selects Bars or Particles and is saved with settings and presets.
+frequency range, resolution, choose from five color palettes, and select coloring by
+frequency or amplitude. Sound Awareness displays labeled Bass, Voice / mids, and High sounds
+meters so important frequency activity is visible without relying on color alone. These are
+broad frequency-energy ranges, not speech recognition or a substitute for an alerting device.
+Render mode selects Bars, Waveform, Radial, or Particles and is saved with settings and presets.
 Changes apply live. Spectrum, Bass glow, Voice, and Electric are built in.
 Save up to 12 named custom presets; saving the same name (case-insensitive)
 replaces that custom preset. Selecting a preset loads it. Built-ins cannot be

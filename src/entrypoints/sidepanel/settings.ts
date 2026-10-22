@@ -1,4 +1,9 @@
-import { normalizeSettings, type VisualizerSettings } from '@/settings/schema';
+import {
+  COLOR_PRESETS,
+  normalizeSettings,
+  type ColorPresetId,
+  type VisualizerSettings,
+} from '@/settings/schema';
 import {
   BUILT_IN_PRESETS,
   deletePreset,
@@ -52,7 +57,11 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
       ['fft-size', active.fftSize],
     ] as const)
       input(id).value = String(value);
-    input('palette').value = active.palette.join(', ');
+    const paletteId =
+      (Object.keys(COLOR_PRESETS) as ColorPresetId[]).find((id) =>
+        COLOR_PRESETS[id].colors.every((color, index) => color === active.palette[index]),
+      ) ?? 'spectrum';
+    input('palette').value = paletteId;
     input('hue-mode').value = active.hueMode;
     input('render-mode').value = active.mode;
     document.querySelector('#gain-value')!.textContent = active.gain.toFixed(1);
@@ -78,7 +87,17 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
   input('render-mode').addEventListener('change', () => {
     picker.value = '';
     remove.disabled = true;
-    apply({ ...active, mode: input('render-mode').value === 'particles' ? 'particles' : 'bars' });
+    const mode = input('render-mode').value;
+    apply({
+      ...active,
+      mode:
+        mode === 'particles' ||
+        mode === 'radial' ||
+        mode === 'waveform' ||
+        mode === 'awareness'
+          ? mode
+          : 'bars',
+    });
   });
   for (const id of ['gain', 'smoothing']) {
     input(id).addEventListener('input', () => {
@@ -87,13 +106,10 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
       apply({ ...active, [id]: Number(input(id).value) });
     });
   }
-  for (const id of ['low', 'high', 'fft-size', 'hue-mode', 'palette']) {
+  for (const id of ['low', 'high', 'fft-size', 'hue-mode']) {
     input(id).addEventListener('change', () => {
       const low = Number(input('low').value);
       const high = Number(input('high').value);
-      const palette = input('palette')
-        .value.split(',')
-        .map((color) => color.trim());
       if (
         !Number.isFinite(low) ||
         !Number.isFinite(high) ||
@@ -105,26 +121,23 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
         display();
         return;
       }
-      if (
-        !palette.length ||
-        palette.length > 8 ||
-        palette.some((color) => !/^#[0-9a-f]{6}$/i.test(color))
-      ) {
-        message.textContent = 'Use 1–8 comma-separated colors, such as #56ccf2, #bb6bd9.';
-        display();
-        return;
-      }
       picker.value = '';
       remove.disabled = true;
       apply({
         ...active,
         range: { low, high },
-        palette,
         fftSize: Number(input('fft-size').value),
         hueMode: input('hue-mode').value === 'amplitude' ? 'amplitude' : 'frequency',
       });
     });
   }
+  input('palette').addEventListener('change', () => {
+    const id = input('palette').value as ColorPresetId;
+    const palette = COLOR_PRESETS[id]?.colors ?? COLOR_PRESETS.spectrum.colors;
+    picker.value = '';
+    remove.disabled = true;
+    apply({ ...active, palette: [...palette] });
+  });
   picker.addEventListener('change', () => {
     const preset = [...BUILT_IN_PRESETS, ...custom].find((item) => item.id === picker.value);
     remove.disabled = !custom.some((item) => item.id === picker.value);

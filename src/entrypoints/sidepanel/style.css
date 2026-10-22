@@ -119,6 +119,11 @@ body {
   min-height: 0;
 }
 
+.panel:has(.now-playing:not([hidden])) #stage {
+  align-self: end;
+  height: calc(100% - 56px);
+}
+
 .now-playing {
   grid-row: 2;
   grid-column: 1;
@@ -304,6 +309,12 @@ h1 {
 summary {
   cursor: pointer;
   padding: 8px;
+}
+
+.panel:has(.settings[open]) {
+  grid-template-rows: auto minmax(320px, 70vh) auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .settings fieldset {

@@ -11,6 +11,8 @@ export interface AudioEngine {
   disconnect(): void;
   /** Fills and returns one reused Uint8Array. Never allocates per frame. */
   getFrequencyData(): Uint8Array;
+  /** Fills and returns one reused time-domain buffer for waveform rendering. */
+  getTimeDomainData(): Uint8Array;
   /** Live update of AnalyserNode.smoothingTimeConstant. */
   setSmoothing(value: number): void;
   /** Reallocates bins only when the frequency resolution changes. */
@@ -30,6 +32,7 @@ export function createAudioEngine(options: AudioEngineOptions): AudioEngine {
   analyser.fftSize = options.fftSize;
   analyser.smoothingTimeConstant = options.smoothing;
   let bins = new Uint8Array(analyser.frequencyBinCount);
+  let waveform = new Uint8Array(analyser.fftSize);
   let input: AudioNode | undefined;
   const disconnect = () => {
     input?.disconnect();
@@ -51,6 +54,10 @@ export function createAudioEngine(options: AudioEngineOptions): AudioEngine {
       analyser.getByteFrequencyData(bins);
       return bins;
     },
+    getTimeDomainData() {
+      analyser.getByteTimeDomainData(waveform);
+      return waveform;
+    },
     setSmoothing(value) {
       analyser.smoothingTimeConstant = value;
     },
@@ -58,6 +65,7 @@ export function createAudioEngine(options: AudioEngineOptions): AudioEngine {
       if (value === analyser.fftSize) return;
       analyser.fftSize = value;
       bins = new Uint8Array(analyser.frequencyBinCount);
+      waveform = new Uint8Array(analyser.fftSize);
     },
     resume: () => context.resume(),
   };

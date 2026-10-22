@@ -81,7 +81,13 @@ describe('particles.reset', () => {
   }
 
   function frameOf(bins: Uint8Array): RenderFrame {
-    return { bins, sampleRate: SAMPLE_RATE, fftSize: FFT_SIZE, pulse: 0 };
+    return {
+      bins,
+      waveform: new Uint8Array(FFT_SIZE),
+      sampleRate: SAMPLE_RATE,
+      fftSize: FFT_SIZE,
+      pulse: 0,
+    };
   }
 
   it('clears live particles, so a silent frame afterwards draws nothing', () => {
@@ -100,4 +106,3 @@ describe('particles.reset', () => {
     expect(ctx.dots).toBe(0);
   });
 });
-

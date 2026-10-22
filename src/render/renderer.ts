@@ -4,6 +4,8 @@ import type { ShapeMode, VisualizerSettings } from '@/settings/schema';
 export interface RenderFrame {
   /** Magnitudes 0–255 per bin. Reused buffer; do not keep a reference. */
   readonly bins: Uint8Array;
+  /** Time-domain samples centered at 128, reused by the audio engine. */
+  readonly waveform: Uint8Array;
   readonly sampleRate: number;
   readonly fftSize: number;
   /** 0→1 beat pulse (LOS-20). Always 0 until that lands. */
