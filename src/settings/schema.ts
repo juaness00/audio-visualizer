@@ -1,10 +1,35 @@
-export type ShapeMode = 'bars' | 'radial' | 'waveform' | 'particles';
+export type ShapeMode = 'bars' | 'radial' | 'waveform' | 'particles' | 'awareness';
 
 /** How a bin picks its color from the palette. */
 export type HueMode = 'frequency' | 'amplitude';
 
 /** Ordered color stops, low → high. */
 export type Palette = readonly string[];
+
+export const COLOR_PRESETS = {
+  spectrum: {
+    name: 'Spectrum',
+    colors: ['#f2994a', '#f2c94c', '#6fcf97', '#56ccf2', '#bb6bd9'],
+  },
+  sunset: {
+    name: 'Sunset',
+    colors: ['#ff6b6b', '#f2994a', '#f2c94c', '#e65ac7', '#bb6bd9'],
+  },
+  ocean: {
+    name: 'Ocean',
+    colors: ['#caf0f8', '#56ccf2', '#0077b6', '#3867ff', '#03045e'],
+  },
+  neon: {
+    name: 'Neon',
+    colors: ['#39ff14', '#00f5d4', '#00bbf9', '#bb6bd9', '#ff4081'],
+  },
+  forest: {
+    name: 'Forest',
+    colors: ['#d9ed92', '#99d98c', '#52b788', '#168aad', '#184e77'],
+  },
+} as const satisfies Record<string, { name: string; colors: Palette }>;
+
+export type ColorPresetId = keyof typeof COLOR_PRESETS;
 
 export interface VisualizerSettings {
   /** AnalyserNode.fftSize. Power of two, 32–32768. Bins = fftSize / 2. */
@@ -26,7 +51,7 @@ export const DEFAULT_SETTINGS: VisualizerSettings = {
   gain: 1,
   range: { low: 20, high: 16000 },
   mode: 'bars',
-  palette: ['#f2994a', '#f2c94c', '#6fcf97', '#56ccf2', '#bb6bd9'],
+  palette: [...COLOR_PRESETS.spectrum.colors],
   hueMode: 'frequency',
 };
 
@@ -42,7 +67,7 @@ export function normalizeSettings(value: unknown): VisualizerSettings {
   const low = number(range.low, DEFAULT_SETTINGS.range.low, 0, 23999);
   const high = number(range.high, DEFAULT_SETTINGS.range.high, 1, 24000);
   const fft = number(data.fftSize, DEFAULT_SETTINGS.fftSize, 32, 32768);
-  const modes: readonly unknown[] = ['bars', 'radial', 'waveform', 'particles'];
+  const modes: readonly unknown[] = ['bars', 'radial', 'waveform', 'particles', 'awareness'];
   const palette = Array.isArray(data.palette)
     ? data.palette
         .filter(

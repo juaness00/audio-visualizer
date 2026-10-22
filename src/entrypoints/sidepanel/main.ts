@@ -9,6 +9,9 @@ import { normalizeSettings } from '@/settings/schema';
 import { setupSettings } from './settings';
 import { bars } from '@/render/modes/bars';
 import { particles } from '@/render/modes/particles';
+import { radial } from '@/render/modes/radial';
+import { waveform } from '@/render/modes/waveform';
+import { awareness } from '@/render/modes/awareness';
 import { createRenderLoop } from '@/render/loop';
 import { observeCanvasSize } from '@/utils/canvas';
 import { INITIAL_STATE, nextState, type PanelEvent, type PanelState } from './state';
@@ -36,7 +39,16 @@ const render = createViews({
   onDismiss: () => dispatch({ type: 'dismiss' }),
 });
 void setupSettings((value) => {
-  const nextRenderer = value.mode === 'particles' ? particles : bars;
+  const nextRenderer =
+    value.mode === 'particles'
+      ? particles
+      : value.mode === 'radial'
+        ? radial
+        : value.mode === 'waveform'
+          ? waveform
+            : value.mode === 'awareness'
+              ? awareness
+            : bars;
   if (renderer !== nextRenderer) {
     renderer.reset?.();
     nextRenderer.reset?.();
@@ -47,8 +59,15 @@ void setupSettings((value) => {
   engine?.setSmoothing(value.smoothing);
   engine?.setFftSize(value.fftSize);
 });
-const frame: { bins: Uint8Array; sampleRate: number; fftSize: number; pulse: number } = {
+const frame: {
+  bins: Uint8Array;
+  waveform: Uint8Array;
+  sampleRate: number;
+  fftSize: number;
+  pulse: number;
+} = {
   bins: new Uint8Array(),
+  waveform: new Uint8Array(),
   sampleRate: 48000,
   fftSize: 2048,
   pulse: 0,
@@ -57,6 +76,7 @@ const loop = createRenderLoop({
   canvas,
   nextFrame() {
     frame.bins = engine!.getFrequencyData();
+    frame.waveform = engine!.getTimeDomainData();
     frame.sampleRate = engine!.sampleRate;
     frame.fftSize = engine!.fftSize;
     return frame;
