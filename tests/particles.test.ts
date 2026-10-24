@@ -87,6 +87,7 @@ describe('particles.reset', () => {
       sampleRate: SAMPLE_RATE,
       fftSize: FFT_SIZE,
       pulse: 0,
+      dt: 1 / 60,
     };
   }
 

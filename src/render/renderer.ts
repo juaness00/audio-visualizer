@@ -1,5 +1,8 @@
 import type { ShapeMode, VisualizerSettings } from '@/settings/schema';
 
+/** The longest step one picture may take, in seconds (LOS-30). */
+export const MAX_FRAME_DT = 0.1;
+
 /** What every renderer receives, once per animation frame. */
 export interface RenderFrame {
   /** Magnitudes 0–255 per bin. Reused buffer; do not keep a reference. */
@@ -10,6 +13,12 @@ export interface RenderFrame {
   readonly fftSize: number;
   /** 0→1 beat pulse (LOS-20). Always 0 until that lands. */
   readonly pulse: number;
+  /**
+   * Seconds since the previous picture (LOS-30), at most MAX_FRAME_DT. It is 0
+   * on the first picture after a start or a hidden panel, so nothing jumps.
+   * Multiply speeds by it to move per second instead of per picture.
+   */
+  readonly dt: number;
 }
 
 export interface Renderer {
