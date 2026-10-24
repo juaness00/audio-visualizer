@@ -65,16 +65,19 @@ const frame: {
   sampleRate: number;
   fftSize: number;
   pulse: number;
+  dt: number;
 } = {
   bins: new Uint8Array(),
   waveform: new Uint8Array(),
   sampleRate: 48000,
   fftSize: 2048,
   pulse: 0,
+  dt: 0,
 };
 const loop = createRenderLoop({
   canvas,
-  nextFrame() {
+  nextFrame(dt) {
+    frame.dt = dt;
     frame.bins = engine!.getFrequencyData();
     frame.waveform = engine!.getTimeDomainData();
     frame.sampleRate = engine!.sampleRate;
