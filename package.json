@@ -14,13 +14,15 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@types/chrome": "^0.3.0",
     "@types/node": "^26.6.5",
     "eslint": "^10.10.0",

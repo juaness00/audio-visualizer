@@ -11,3 +11,5 @@ stats.html
 
 # Local Claude Code instructions
 CLAUDE.md
+test-results/
+playwright-report/
