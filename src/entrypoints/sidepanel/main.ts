@@ -4,6 +4,7 @@ import { createFileSource, isFileSource } from '@/audio/sources/file';
 import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
 import { TAB_CAPTURE_PORT } from '@/audio/tab-capture';
+import { createTabSilence } from '@/audio/tab-silence';
 import type { AudioSource, SourceKind } from '@/audio/sources/types';
 import { normalizeSettings } from '@/settings/schema';
 import { setupSettings } from './settings';
@@ -46,8 +47,8 @@ void setupSettings((value) => {
         ? radial
         : value.mode === 'waveform'
           ? waveform
-            : value.mode === 'awareness'
-              ? awareness
+          : value.mode === 'awareness'
+            ? awareness
             : bars;
   if (renderer !== nextRenderer) {
     renderer.reset?.();
@@ -59,23 +60,33 @@ void setupSettings((value) => {
   engine?.setSmoothing(value.smoothing);
   engine?.setFftSize(value.fftSize);
 });
+const tabSilence = createTabSilence();
 const frame: {
   bins: Uint8Array;
   waveform: Uint8Array;
   sampleRate: number;
   fftSize: number;
   pulse: number;
+  dt: number;
 } = {
   bins: new Uint8Array(),
   waveform: new Uint8Array(),
   sampleRate: 48000,
   fftSize: 2048,
   pulse: 0,
+  dt: 0,
 };
 const loop = createRenderLoop({
   canvas,
-  nextFrame() {
+  nextFrame(dt) {
+    frame.dt = dt;
     frame.bins = engine!.getFrequencyData();
+    const silenceEvent = tabSilence.update(
+      state.view === 'playing' ? state.kind : undefined,
+      frame.bins,
+      performance.now(),
+    );
+    if (silenceEvent) dispatch({ type: silenceEvent });
     frame.waveform = engine!.getTimeDomainData();
     frame.sampleRate = engine!.sampleRate;
     frame.fftSize = engine!.fftSize;
@@ -94,6 +105,7 @@ function dispatch(event: PanelEvent) {
 }
 
 function stop() {
+  tabSilence.reset();
   captureRequest = undefined;
   generation++;
   source?.stop();
@@ -190,6 +202,17 @@ function connectCapture() {
   port.onMessage.addListener((message) => {
     if (typeof message?.requestId !== 'string') return;
     if (message.type === 'prepare') {
+      if (
+        message.toggle === true &&
+        (state.view === 'loading' || state.view === 'playing') &&
+        state.kind === 'tab'
+      ) {
+        stop();
+        state = { view: 'picker', notice: 'Stopped. Choose a source to start again.' };
+        render(state);
+        port.postMessage({ type: 'prepared', requestId: message.requestId, stopped: true });
+        return;
+      }
       stop();
       sourceTitle = 'This tab';
       captureRequest = message.requestId;

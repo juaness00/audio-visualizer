@@ -3,7 +3,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['.output/**', '.wxt/**', 'node_modules/**'] },
+  {
+    ignores: [
+      '.output/**',
+      '.wxt/**',
+      'node_modules/**',
+      'test-results/**',
+      'playwright-report/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -20,7 +28,11 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser, ...globals.webextensions } },
   },
   {
-    files: ['scripts/**/*.mjs', '*.config.{js,ts}'],
+    files: ['scripts/**/*.mjs', '*.config.{js,ts,mjs}'],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    files: ['e2e/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser, ...globals.webextensions } },
   },
 );

@@ -1,6 +1,7 @@
 {
   "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
+    "typeRoots": ["./node_modules/@types"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
