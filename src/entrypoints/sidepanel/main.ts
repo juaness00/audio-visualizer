@@ -4,6 +4,7 @@ import { createFileSource, isFileSource } from '@/audio/sources/file';
 import { createMicSource } from '@/audio/sources/mic';
 import { createTabSource } from '@/audio/sources/tab';
 import { TAB_CAPTURE_PORT } from '@/audio/tab-capture';
+import { createTabSilence } from '@/audio/tab-silence';
 import type { AudioSource, SourceKind } from '@/audio/sources/types';
 import { normalizeSettings } from '@/settings/schema';
 import { setupSettings } from './settings';
@@ -46,8 +47,8 @@ void setupSettings((value) => {
         ? radial
         : value.mode === 'waveform'
           ? waveform
-            : value.mode === 'awareness'
-              ? awareness
+          : value.mode === 'awareness'
+            ? awareness
             : bars;
   if (renderer !== nextRenderer) {
     renderer.reset?.();
@@ -59,6 +60,7 @@ void setupSettings((value) => {
   engine?.setSmoothing(value.smoothing);
   engine?.setFftSize(value.fftSize);
 });
+const tabSilence = createTabSilence();
 const frame: {
   bins: Uint8Array;
   waveform: Uint8Array;
@@ -79,6 +81,12 @@ const loop = createRenderLoop({
   nextFrame(dt) {
     frame.dt = dt;
     frame.bins = engine!.getFrequencyData();
+    const silenceEvent = tabSilence.update(
+      state.view === 'playing' ? state.kind : undefined,
+      frame.bins,
+      performance.now(),
+    );
+    if (silenceEvent) dispatch({ type: silenceEvent });
     frame.waveform = engine!.getTimeDomainData();
     frame.sampleRate = engine!.sampleRate;
     frame.fftSize = engine!.fftSize;
@@ -97,6 +105,7 @@ function dispatch(event: PanelEvent) {
 }
 
 function stop() {
+  tabSilence.reset();
   captureRequest = undefined;
   generation++;
   source?.stop();
