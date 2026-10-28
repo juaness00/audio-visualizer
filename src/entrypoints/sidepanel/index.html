@@ -14,10 +14,45 @@
           <strong>GatorTasm</strong>
           <span>Audio Visualizer</span>
         </div>
-        <button class="menu-button" type="button" aria-label="More options">
+        <button
+          id="menu-button"
+          class="menu-button"
+          type="button"
+          aria-label="More options"
+          aria-expanded="false"
+          aria-controls="quick-actions"
+        >
           <span></span><span></span><span></span>
         </button>
+        <div id="quick-actions" class="quick-actions" hidden>
+          <button id="open-settings" type="button">Open settings</button>
+          <button id="reset-settings" type="button">Reset settings</button>
+          <button id="about-button" type="button">About GatorTasm</button>
+        </div>
       </header>
+
+      <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-title">
+        <div class="about-content">
+          <button id="about-close" class="about-close" type="button" aria-label="Close about dialog">
+            ×
+          </button>
+          <p class="eyebrow">About GatorTasm</p>
+          <h2 id="about-title">Your sound, made visible.</h2>
+          <p>
+            GatorTasm turns audio into colorful, responsive visuals so you can experience music
+            and sound in a more visual way.
+          </p>
+          <p>
+            Choose audio from this tab, your microphone, or a local file, then explore Bars,
+            Waveform, Radial, Particles, or Sound Awareness mode.
+          </p>
+          <p class="about-note">
+            Sound Awareness highlights bass, voice/midrange, and high-frequency activity. It is
+            an audio-awareness aid, not a replacement for emergency alerts or accessibility
+            equipment.
+          </p>
+        </div>
+      </dialog>
 
       <canvas id="stage" aria-label="Audio visualization"></canvas>
       <p id="now-playing" class="now-playing" role="status" hidden></p>

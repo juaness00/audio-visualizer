@@ -193,6 +193,16 @@ export function setupSettings(onChange: (settings: VisualizerSettings) => void) 
     }
   }
   retry.addEventListener('click', () => void (loaded ? persist() : restore()));
+  window.addEventListener('reset-visualizer-settings', () => {
+    picker.value = '';
+    remove.disabled = true;
+    name.value = '';
+    active = normalizeSettings(undefined);
+    display();
+    onChange(active);
+    message.textContent = 'Settings reset to defaults.';
+    void persist();
+  });
   const changed = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (area !== 'local') return;
     if (changes[SYNC_ERROR_KEY]?.newValue)

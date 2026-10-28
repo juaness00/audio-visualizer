@@ -23,6 +23,11 @@ import { setupDropZone } from './drop';
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const nowPlaying = document.querySelector<HTMLElement>('#now-playing')!;
+const menuButton = document.querySelector<HTMLButtonElement>('#menu-button')!;
+const quickActions = document.querySelector<HTMLElement>('#quick-actions')!;
+const settingsDetails = document.querySelector<HTMLDetailsElement>('.settings')!;
+const aboutDialog = document.querySelector<HTMLDialogElement>('#about-dialog')!;
+const aboutClose = document.querySelector<HTMLButtonElement>('#about-close')!;
 const stopObserving = observeCanvasSize(canvas);
 
 let state: PanelState = INITIAL_STATE;
@@ -103,6 +108,43 @@ function dispatch(event: PanelEvent) {
   if (state.view === 'playing') loop.start();
   else loop.stop();
 }
+
+function closeQuickActions() {
+  quickActions.hidden = true;
+  menuButton.setAttribute('aria-expanded', 'false');
+}
+
+menuButton.addEventListener('click', () => {
+  quickActions.hidden = !quickActions.hidden;
+  menuButton.setAttribute('aria-expanded', String(!quickActions.hidden));
+});
+menuButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+document.querySelector('#open-settings')?.addEventListener('click', () => {
+  settingsDetails.open = true;
+  closeQuickActions();
+  settingsDetails.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+document.querySelector('#reset-settings')?.addEventListener('click', () => {
+  window.dispatchEvent(new CustomEvent('reset-visualizer-settings'));
+  closeQuickActions();
+});
+document.querySelector('#about-button')?.addEventListener('click', () => {
+  closeQuickActions();
+  aboutDialog.showModal();
+});
+aboutClose.addEventListener('click', () => aboutDialog.close());
+aboutDialog.addEventListener('click', (event) => {
+  if (event.target === aboutDialog) aboutDialog.close();
+});
+document.addEventListener('click', (event) => {
+  const target = event.target as Node;
+  if (!quickActions.hidden && !quickActions.contains(target) && !menuButton.contains(target))
+    closeQuickActions();
+});
+quickActions.addEventListener('click', (event) => event.stopPropagation());
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeQuickActions();
+});
 
 function stop() {
   tabSilence.reset();
