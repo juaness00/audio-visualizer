@@ -55,16 +55,23 @@ document is needed.
 ## Development
 
 ```bash
-npm install        # runs `wxt prepare`
+npm ci             # clean lockfile install; runs `wxt prepare`
 npm run dev        # build + watch → .output/chrome-mv3
 npm run build      # production build
-npm run zip        # store-ready zip
+npm run zip        # extension ZIP; not proof of Web Store readiness
 npm run lint && npm run typecheck && npm test
+npx playwright install chromium
+npm run test:e2e    # headed production-bundle browser tests (run build first)
 ```
 
 Load once via `chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and PR flow.
+
+See [the demo runbook](docs/demo-checklist.md) for a deterministic local audio
+fixture, presentation steps, automated coverage boundaries, and real-Chrome checks.
+Web Store submission is a separate release task; generating a ZIP does not submit
+the extension or establish that its listing and privacy requirements are complete.
 
 ## Microphone setup and testing
 
@@ -87,7 +94,8 @@ To verify in Chrome after `npm run build` and loading `.output/chrome-mv3`:
 6. Try with no microphone or with access blocked in Windows privacy settings; the
    panel should explain the failure.
 
-Local file playback remains unfinished.
+Local file playback supports the picker, drag-and-drop, play/pause, seek, and loop.
+Undecodable files return to the picker with a readable notice.
 
 ## Tab audio setup and testing
 
@@ -97,7 +105,7 @@ After building and reloading the extension at `chrome://extensions`:
    start audio, such as a YouTube video.
 2. Click the Audio Visualizer toolbar icon. The panel opens and captures that tab
    automatically. Audio should stay audible while the visualization responds.
-3. Switch between Bars, Waveform, Radial, and Particles under Settings & presets.
+3. Switch between Bars, Waveform, Radial, Particles, and Sound Awareness under Settings & presets.
 4. Click Stop. Capture should end and the original tab audio should continue.
 5. Start again with the toolbar icon. Switch to a different playing tab and click
    the icon there to replace the captured source. Simply changing tabs keeps the
@@ -120,7 +128,7 @@ frequency range, resolution, choose from five color palettes, and select colorin
 frequency or amplitude. Sound Awareness displays labeled Bass, Voice / mids, and High sounds
 meters so important frequency activity is visible without relying on color alone. These are
 broad frequency-energy ranges, not speech recognition or a substitute for an alerting device.
-Render mode selects Bars, Waveform, Radial, or Particles and is saved with settings and presets.
+Render mode selects Bars, Waveform, Radial, Particles, or Sound Awareness and is saved with settings and presets.
 Changes apply live. Spectrum, Bass glow, Voice, and Electric are built in.
 Save up to 12 named custom presets; saving the same name (case-insensitive)
 replaces that custom preset. Selecting a preset loads it. Built-ins cannot be
@@ -152,4 +160,6 @@ Manual verification after rebuilding and reloading the extension:
 No additional Chrome extension is required. Optional VS Code extensions matching
 this repository are ESLint (`dbaeumer.vscode-eslint`) and Prettier
 (`esbenp.prettier-vscode`). Node.js 22+ is required for development. On Windows,
-use `npm.cmd` if PowerShell blocks the `npm.ps1` wrapper.
+use `npm.cmd` if PowerShell blocks the `npm.ps1` wrapper. For the current test
+toolchain use Node 22.12+ within 22.x, 24.x, or 26+; earlier Node 22 releases and
+odd-numbered 23/25 releases are not supported by Vitest's engine requirement.
