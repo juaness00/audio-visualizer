@@ -3,7 +3,7 @@ const HANDOFF_TIMEOUT_MS = 5000;
 
 interface Panel {
   port: chrome.runtime.Port;
-  prepare(requestId: string): Promise<void>;
+  prepare(requestId: string, toggle: boolean): Promise<boolean>;
 }
 
 /** Wait for the correct window's panel before minting an expiring stream ID. */
@@ -11,6 +11,7 @@ export function setupTabCapture() {
   const panels = new Map<number, Panel>();
   const waiting = new Map<number, Set<(panel: Panel) => void>>();
   const latest = new Map<number, string>();
+  const toggling = new Set<number>();
 
   function panelFor(windowId: number): Promise<Panel> {
     const panel = panels.get(windowId);
@@ -41,19 +42,22 @@ export function setupTabCapture() {
     )
       return;
     let windowId: number | undefined;
-    const pending = new Map<string, { resolve(): void; reject(error: Error): void }>();
+    const pending = new Map<
+      string,
+      { resolve(stopped: boolean): void; reject(error: Error): void }
+    >();
     const panel: Panel = {
       port,
-      prepare(requestId) {
+      prepare(requestId, toggle) {
         return new Promise((resolve, reject) => {
           const timer = setTimeout(() => {
             pending.delete(requestId);
             reject(new Error('The audio visualizer panel stopped responding.'));
           }, HANDOFF_TIMEOUT_MS);
           pending.set(requestId, {
-            resolve() {
+            resolve(stopped) {
               clearTimeout(timer);
-              resolve();
+              resolve(stopped);
             },
             reject(error) {
               clearTimeout(timer);
@@ -61,7 +65,7 @@ export function setupTabCapture() {
             },
           });
           try {
-            port.postMessage({ type: 'prepare', requestId });
+            port.postMessage({ type: 'prepare', requestId, ...(toggle ? { toggle: true } : {}) });
           } catch (error) {
             pending
               .get(requestId)
@@ -78,7 +82,7 @@ export function setupTabCapture() {
         for (const ready of waiting.get(message.windowId) ?? []) ready(panel);
       }
       if (message?.type === 'prepared' && typeof message.requestId === 'string') {
-        pending.get(message.requestId)?.resolve();
+        pending.get(message.requestId)?.resolve(message.stopped === true);
         pending.delete(message.requestId);
       }
     });
@@ -93,18 +97,22 @@ export function setupTabCapture() {
     .setPanelBehavior({ openPanelOnActionClick: false })
     .catch((error: unknown) => console.error('sidePanel.setPanelBehavior failed', error));
 
-  chrome.action.onClicked.addListener(async (tab) => {
+  async function capture(tab: chrome.tabs.Tab, toggle = false) {
     if (tab.id === undefined) return;
+    // Key repeat must not restart or undo an in-flight toggle handshake.
+    if (toggle && toggling.has(tab.windowId)) return;
+    if (toggle) toggling.add(tab.windowId);
     const requestId = crypto.randomUUID();
     latest.set(tab.windowId, requestId);
     let panel: Panel | undefined;
     try {
-      // Must run synchronously in the toolbar click's user gesture.
+      // Must run synchronously in the toolbar click or keyboard command gesture.
       await chrome.sidePanel.open({ windowId: tab.windowId });
       panel = await panelFor(tab.windowId);
       if (latest.get(tab.windowId) !== requestId) return;
       // Release an existing capture before requesting another for the same tab.
-      await panel.prepare(requestId);
+      const stopped = await panel.prepare(requestId, toggle);
+      if (toggle && stopped) return;
       if (latest.get(tab.windowId) !== requestId) return;
       const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id });
       if (latest.get(tab.windowId) !== requestId) return;
@@ -120,6 +128,13 @@ export function setupTabCapture() {
       }
     } finally {
       if (latest.get(tab.windowId) === requestId) latest.delete(tab.windowId);
+      if (toggle) toggling.delete(tab.windowId);
     }
+  }
+
+  chrome.action.onClicked.addListener((tab) => capture(tab));
+  chrome.commands.onCommand.addListener((command, tab) => {
+    if (command !== 'toggle-tab-capture' || !tab) return;
+    return capture(tab, true);
   });
 }

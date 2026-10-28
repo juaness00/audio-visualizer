@@ -15,5 +15,11 @@ export default defineConfig({
     // `sidePanel` is added automatically because a sidepanel entrypoint exists.
     permissions: ['tabCapture', 'activeTab', 'storage'],
     action: { default_title: 'Open Audio Visualizer' },
+    commands: {
+      'toggle-tab-capture': {
+        suggested_key: { default: 'Ctrl+Shift+V', mac: 'Command+Shift+V' },
+        description: 'Start or stop tab audio capture',
+      },
+    },
   },
 });

@@ -202,6 +202,17 @@ function connectCapture() {
   port.onMessage.addListener((message) => {
     if (typeof message?.requestId !== 'string') return;
     if (message.type === 'prepare') {
+      if (
+        message.toggle === true &&
+        (state.view === 'loading' || state.view === 'playing') &&
+        state.kind === 'tab'
+      ) {
+        stop();
+        state = { view: 'picker', notice: 'Stopped. Choose a source to start again.' };
+        render(state);
+        port.postMessage({ type: 'prepared', requestId: message.requestId, stopped: true });
+        return;
+      }
       stop();
       sourceTitle = 'This tab';
       captureRequest = message.requestId;
